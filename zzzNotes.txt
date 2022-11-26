@@ -1,0 +1,50 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../providers/number_provider.dart';
+
+final numberProvider = Provider<int>(((ref) => 42));
+final numberStateProvider = StateProvider<int>((ref) => 11);
+
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
+
+  void incremenet(WidgetRef ref) {
+    ref.read(numberStateProvider.notifier).state++;
+  }
+
+  void decremenet(WidgetRef ref) {
+    ref.read(numberStateProvider.notifier).state--;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final number = ref.watch(numberProvider);
+    final numberState = ref.watch(numberStateProvider);
+    final numberStateNotifier = ref.watch(numberStateNotifierProvider);
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Center(child: Text('Number Provider: $number')),
+            Row(
+              children: [
+                Center(child: Text('NumberState Provider: $numberState')),
+                ElevatedButton(onPressed: () => incremenet(ref), child: const Text('Increment')),
+                ElevatedButton(onPressed: () => decremenet(ref), child: const Text('Decrement')),
+              ],
+            ),
+            Row(
+              children: [
+                Center(child: Text('NumberStateNotifier Provider: $numberStateNotifier')),
+                ElevatedButton(onPressed: () => ref.read(numberStateNotifierProvider.notifier).increment(), child: const Text('Increment')),
+                ElevatedButton(onPressed: () => ref.read(numberStateNotifierProvider.notifier).decrement(), child: const Text('Decrement')),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
