@@ -3,15 +3,18 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:karta/components/common/loading_indicator.dart';
 import 'package:karta/constants/colors.dart';
+import 'package:karta/models/question.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-class HomeScreen extends ConsumerWidget {
-  HomeScreen({super.key});
+import '../../providers/questions_provider.dart';
 
-  final EdgeInsetsGeometry customPadding = EdgeInsets.symmetric(horizontal: 5.w);
-  EdgeInsetsGeometry lessonCardMargin(int index) => index == 0 ? EdgeInsets.only(left: 5.w, right: 5.w, top: 3.h, bottom: 3.h) : EdgeInsets.only(right: 5.w, top: 3.h, bottom: 3.h);
-  final bottomNavBarIndexStateProvider = StateProvider<int>((ref) => 0);
+final loadingStateProvider = StateProvider<bool>((ref) => true);
+final bottomNavBarIndexStateProvider = StateProvider<int>((ref) => 0);
+
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
 
   void changeBottomNavBarIndexState(int newIndex, WidgetRef ref) {
     ref.read(bottomNavBarIndexStateProvider.notifier).state = newIndex;
@@ -20,101 +23,130 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bottomNavBarIndex = ref.watch(bottomNavBarIndexStateProvider);
+    final isLoading = ref.watch(loadingStateProvider);
+    final futureQuestions = ref.watch(questionsFutureProvider);
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        onTap: (value) => changeBottomNavBarIndexState(value, ref),
-        currentIndex: bottomNavBarIndex,
-        unselectedItemColor: Colors.grey.withOpacity(0.5),
-        selectedItemColor: Colors.black54,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Quiz'),
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Topics'),
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Setting'),
-        ],
-      ),
+      floatingActionButton: isLoading ? null : FloatingActionButton(onPressed: () {}, child: const Icon(Icons.add, color: Colors.white)),
+      bottomNavigationBar: isLoading
+          ? null
+          : BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              onTap: (value) => changeBottomNavBarIndexState(value, ref),
+              currentIndex: bottomNavBarIndex,
+              unselectedItemColor: Colors.grey.withOpacity(0.5),
+              selectedItemColor: Colors.black54,
+              showSelectedLabels: false,
+              showUnselectedLabels: false,
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+                BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Quiz'),
+                BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Topics'),
+                BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Setting'),
+              ],
+            ),
       body: Container(
         height: 100.h,
         width: 100.w,
         decoration: const BoxDecoration(color: Colors.white),
         child: SafeArea(
-          child: Container(
-            decoration: const BoxDecoration(),
-            child: NotificationListener<OverscrollIndicatorNotification>(
-              onNotification: (notification) {
-                notification.disallowIndicator();
-                return true;
-              },
-              child: ListView(
+          child: futureQuestions.when(
+            data: (data) {
+              // debugPrint(data[0].toString());
+
+              return HomeComponent();
+            },
+            loading: () => Center(child: LoadingIndicator(size: 8.w)),
+            error: (error, stackTrace) => Center(child: Text('Something went wrong: $error \nStackTrace: $stackTrace')),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+//!
+//!
+//!
+
+class HomeComponent extends ConsumerWidget {
+  HomeComponent({super.key});
+
+  final EdgeInsetsGeometry customPadding = EdgeInsets.symmetric(horizontal: 5.w);
+  EdgeInsetsGeometry lessonCardMargin(int index) => index == 0 ? EdgeInsets.only(left: 5.w, right: 5.w, top: 3.h, bottom: 3.h) : EdgeInsets.only(right: 5.w, top: 3.h, bottom: 3.h);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    List<Question> questions = ref.watch(questionNotifierProvider);
+
+    return Container(
+      decoration: const BoxDecoration(),
+      child: NotificationListener<OverscrollIndicatorNotification>(
+        onNotification: (notification) {
+          notification.disallowIndicator();
+          return true;
+        },
+        child: ListView(
+          children: [
+            SizedBox(height: 5.h),
+            Padding(
+              padding: customPadding,
+              child: Text(
+                'Good morning,\nAbenezer!',
+                style: GoogleFonts.montserrat(
+                  textStyle: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w400),
+                ),
+              ),
+            ),
+            SizedBox(height: 1.h),
+            Padding(
+              padding: customPadding,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SizedBox(height: 5.h),
-                  Padding(
-                    padding: customPadding,
-                    child: Text(
-                      'Good morning,\nAbenezer!',
-                      style: GoogleFonts.montserrat(
-                        textStyle: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w400),
-                      ),
+                  Text(
+                    'Your lessons',
+                    style: GoogleFonts.lato(
+                      textStyle: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w400, color: Colors.grey),
                     ),
                   ),
-                  SizedBox(height: 1.h),
-                  Padding(
-                    padding: customPadding,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Your lessons',
-                          style: GoogleFonts.lato(
-                            textStyle: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w400, color: Colors.grey),
-                          ),
-                        ),
-                        CustomTextButton(label: 'See all', ontap: () {}),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
-                  SizedBox(
-                    width: 100.w,
-                    height: 20.h,
-                    child: ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      scrollDirection: Axis.horizontal,
-                      itemCount: 3,
-                      itemBuilder: (context, index) => LessonCard(
-                        ontap: () {},
-                        margin: lessonCardMargin(index),
-                        cardTitle: 'General Programming',
-                        cardDescription: '50 most common French verbs 50 most common French verbs 50 most common French verbs',
-                      ),
-                    ),
-                  ),
-                  const Divider(),
-                  Padding(
-                    padding: customPadding,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Discover new things to learn',
-                          style: GoogleFonts.lato(textStyle: TextStyle(fontSize: 15.sp)),
-                        ),
-                        CustomTextButton(label: 'See all', ontap: () {}),
-                      ],
-                    ),
-                  ),
+                  CustomTextButton(label: 'See all', ontap: () {}),
                 ],
               ),
             ),
-          ),
+            SizedBox(height: 2.h),
+            SizedBox(
+              width: 100.w,
+              height: 20.h,
+              child: ListView.builder(
+                physics: const BouncingScrollPhysics(),
+                scrollDirection: Axis.horizontal,
+                itemCount: questions.length,
+                itemBuilder: (context, index) => LessonCard(
+                  ontap: () {},
+                  margin: lessonCardMargin(index),
+                  // cardTitle: 'General Programming',
+                  cardTitle: questions[index].category,
+                  // cardDescription: '50 most common French verbs 50 most common French verbs 50 most common French verbs',
+                  cardDescription: questions[index].question,
+                ),
+              ),
+            ),
+            const Divider(),
+            Padding(
+              padding: customPadding,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Discover new things to learn',
+                    style: GoogleFonts.lato(textStyle: TextStyle(fontSize: 15.sp)),
+                  ),
+                  CustomTextButton(label: 'See all', ontap: () {}),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
